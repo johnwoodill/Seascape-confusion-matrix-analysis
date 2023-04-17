@@ -5,8 +5,10 @@ import geopandas as gpd
 import xarray as xr
 import rasterio.mask
 import rioxarray as rxr
+import glob
 
 from sklearn.metrics import confusion_matrix
+from sklearn.metrics import accuracy_score, f1_score, precision_score, recall_score, classification_report
 from scipy.stats import mode
 from shapely.geometry import Polygon
 
@@ -65,20 +67,8 @@ def download_seascapes():
     download_CW("https://cwcgom.aoml.noaa.gov/thredds/ncss/SEASCAPE_MONTH_VIIRS_OLCI/SEASCAPES.nc?var=CLASS&var=P&north=90&west=-180&east=180&south=-90&disableProjSubset=on&horizStride=1&time_start=2022-01-01T12%3A00%3A00Z&time_end=2022-12-15T12%3A00%3A00Z&timeStride=1&addLatLon=true&accept=netcdf", "data/seascapes/VIIRSSS_2022.nc")
     print(f"Saving: data/seascapes/VIIRSSS_2022.nc")
     
+
     
-
-
-
-
-
-
-# -----------------------------------------------------------------------------
-
-
-
-
-year = "2017"
-
 def proc_seascape_data(year):
 
     # Get shapefiles for mask
@@ -122,84 +112,137 @@ def proc_seascape_data(year):
     # Mask CA Coast
     geom = ca_coast
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/ca_coast_{year}.nc")
-    print(f"Saving: data/processed/ca_coast_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/ca_coast_{year}.nc")
+    print(f"Saving: data/processed/oceans/ca_coast_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/ca_coast_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/ca_coast_{year}.csv")
+    
 
     # Mask East Coast
     geom = east_coast
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/east_coast_{year}.nc")
-    print(f"Saving: data/processed/east_coast_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/east_coast_{year}.nc")
+    print(f"Saving: data/processed/oceans/east_coast_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/east_coast_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/east_coast_{year}.csv")
 
     # Mask gulf of mexico
     geom = gulf_of_mexico
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/gulf_of_mexico_{year}.nc")
-    print(f"Saving: data/processed/gulf_of_mexico_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/gulf_of_mexico_{year}.nc")
+    print(f"Saving: data/processed/oceans/gulf_of_mexico_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/gulf_of_mexico_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/gulf_of_mexico_{year}.csv")
+
 
     # Mask North Pacific
     geom = north_pacific
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/north_pacific_{year}.nc")
-    print(f"Saving: data/processed/north_pacific_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/north_pacific_{year}.nc")
+    print(f"Saving: data/processed/oceans/north_pacific_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/north_pacific_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/north_pacific_{year}.csv")
 
     # Mask South Pacific
     geom = south_pacific
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/south_pacific_{year}.nc")
-    print(f"Saving: data/processed/south_pacific_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/south_pacific_{year}.nc")
+    print(f"Saving: data/processed/oceans/south_pacific_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/south_pacific_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/south_pacific_{year}.csv")
 
     # Mask North Atlantic
     geom = north_atlantic
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/north_atlantic_{year}.nc")
-    print(f"Saving: data/processed/north_atlantic_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/north_atlantic_{year}.nc")
+    print(f"Saving: data/processed/oceans/north_atlantic_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/north_atlantic_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/north_atlantic_{year}.csv")
 
     # Mask South Atlantic
     geom = south_atlantic
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf(f"data/processed/south_atlantic_{year}.nc")
-    print(f"Saving: data/processed/south_atlantic_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/south_atlantic_{year}.nc")
+    print(f"Saving: data/processed/oceans/south_atlantic_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/south_atlantic_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/south_atlantic_{year}.csv")
+
 
     # Mask Indian Ocean
     geom = indian_ocean.geometry
     outdat = gdf.rio.clip(geom.geometry, all_touched=False, drop=True, invert=False, from_disk=True) 
-    outdat.to_netcdf("data/processed/indian_ocean_{year}.nc")
-    print("Saving: data/processed/indian_ocean_{year}.nc")
+    outdat.to_netcdf(f"data/processed/oceans/indian_ocean_{year}.nc")
+    print(f"Saving: data/processed/oceans/indian_ocean_{year}.nc")
+    outdat2 = outdat.to_dataframe().reset_index()
+    outdat2.to_csv(f"data/processed/oceans/indian_ocean_{year}.csv", index=False)
+    print(f"Saving: data/processed/oceans/indian_ocean_{year}.csv")
 
 
 
 
 
-# Mask global
-indat = indat.to_dataframe().reset_index()
-indat.to_csv('data/test_gom.csv', index=False)
-cmat = confusion_matrix(indat['MCLASS'], indat['VCLASS'])
 
-outdat = dat.to_dataframe().reset_index()
-outdat = outdat.dropna(subset=['diff'])
+file_ = "data/processed/oceans/ca_coast_2018.nc"
 
-test = outdat.dropna(subset=['diff'])
+def proc_conf_mats(file_):
 
-mdat.columns = ['time', 'lat', 'lon', 'MCLASS', 'MP']
-vdat.columns = ['time', 'lat', 'lon', 'VCLASS', 'VP']
+        filename = file_.split("/")[-1].split(".")[0]
+        region = "_".join(file_.split("/")[-1].split(".")[0].split("_")[0:-1])
+        year = file_.split("/")[-1].split(".")[0].split("_")[-1]
 
-dat = mdat.merge(vdat, on=['time', 'lat', 'lon'], how='left')
-dat = dat.assign(diff = dat['MCLASS'] - dat['VCLASS'])
+        dat = rxr.open_rasterio(file_)
 
-# Get the data for the CLASS variable
-mclass = mdat['MCLASS'].values
-vclass = vdat['VCLASS'].values
+        indat = dat.to_dataframe().reset_index()
 
-# Flatten the arrays along the lat and lon dimensions while preserving the time dimension
-mclass = mclass.reshape((mclass.shape[0], -1))
-vclass = vclass.reshape((vclass.shape[0], -1))
+        true_labels = indat['MCLASS']
+        pred_labels = indat['VCLASS']
 
-# Compute the confusion matrix
-conf_mat = confusion_matrix(mclass, vclass)
+        # create a list of all possible labels
+        all_labels = np.unique(np.concatenate((true_labels, pred_labels)))
 
-# Print the confusion matrix
-print(conf_mat)
+        # create the confusion matrix using the true and predicted labels
+        cm = confusion_matrix(true_labels, pred_labels, labels=all_labels)
+
+        # calculate the accuracy for each class
+        accuracies = {}
+        for i, label in enumerate(all_labels):
+            total = sum(cm[i, :])
+            correct = cm[i, i]
+            accuracy = correct / total
+            accuracies[label] = accuracy
+
+        df_cm = pd.DataFrame(cm, index=all_labels, columns=all_labels).reset_index()
+        df_cm = df_cm.rename(columns={'index': 'seascape'})
+        df_cm.insert(1, 'acc', pd.DataFrame(accuracies, index=[0]).T)
+        df_cm.insert(2, 'region', region)
+        df_cm.insert(3, 'year', year)
+        df_cm = df_cm.sort_values('acc', ascending=False).reset_index(drop=True)
+
+        full_accuracy = accuracy_score(true_labels, pred_labels)
+        precision = precision_score(true_labels, pred_labels, average=None, labels=np.unique(true_labels))
+        recall = recall_score(true_labels, pred_labels, average=None, labels=np.unique(true_labels))
+        f1 = f1_score(true_labels, pred_labels, average=None, labels=np.unique(true_labels))
+
+        amat = pd.DataFrame({'seascape': np.unique(true_labels)})
+        amat['full_accuracy'] = full_accuracy
+        amat['precision'] = precision
+        amat['recall'] = recall
+        amat['f1'] = f1
+
+        df_cm.merge(amat, on='seascape', how='left')
+
+        df_cm.to_csv(f"data/processed/conf_mats/{filename}.csv", index=False)
+
+
+[proc_conf_mats(x) for x in glob.glob("data/processed/oceans/ca_coast*")]
+
 
 
 
@@ -212,13 +255,6 @@ if __name__ == "__main__":
     # proc_seascape_data("2017")
 
     results = [proc_seascape_data(years) for years in years_]
-
-
-
-
-
-
-
 
 
 
