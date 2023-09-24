@@ -13,11 +13,25 @@ loc = "gulf_of_mexico"
 loc = "north_atlantic"
 loc = "chukchi_sea"
 
+plot_title = "test"
+
+time_step = "monthly"
+
 # Create tile map for most dominant seascapes in all years
-create_tile_map = function(loc, plot_title){
+create_acc_tile_map = function(loc, plot_title, time_step){
   # Get data for all years given location
   # Get a list of all CSV files that contain "my_string" in their name
-  files <- list.files("data/processed/conf_mats/", pattern = paste0(loc, ".*\\.csv$"), full.names = TRUE)
+  if (time_step == "monthly"){
+  
+    files <- list.files("data/processed/conf_mats/", pattern = paste0(loc, ".*\\.csv$"), full.names = TRUE)
+    files <- files[!grepl("8day", files)]
+  }
+  
+  if (time_step == "8day"){
+  
+    files <- list.files("data/processed/conf_mats/", pattern = paste0(loc, ".*8day.*\\.csv$"), full.names = TRUE)
+  
+  }
   
   # Loop through each file, read the CSV, and bind it to the data frame
   indat <- data.frame()
@@ -63,8 +77,8 @@ create_tile_map = function(loc, plot_title){
   
   # Get filename and save
   ggsave(plot = plot_, filename=paste0("figures/May2023_poster_figures/", loc, "_conf_matrix_year.png"), width=6, height=5)
-  
-  
+  plot_
+  # (NOT REALLY INFORMATIVE)
   # indat2 = indat %>% group_by(seascape, month) %>% summarise(acc = mean(acc))
   # ggplot(indat2, aes(month, seascape, fill=acc)) + 
   #   geom_tile()  +
@@ -103,7 +117,106 @@ create_tile_map = function(loc, plot_title){
     ggsave(plot = plot2_, filename=paste0("figures/May2023_poster_figures/", loc, "_conf_matrix_year_month.png"), width=8, height=5)
 
   
+}
+
+
+
+
+# Create tile map for most dominant seascapes in all years
+create_f1_tile_map = function(loc, plot_title){
+  # Get data for all years given location
+  # Get a list of all CSV files that contain "my_string" in their name
+  files <- list.files("data/processed/conf_mats/", pattern = paste0(loc, ".*\\.csv$"), full.names = TRUE)
+  
+  # Loop through each file, read the CSV, and bind it to the data frame
+  indat <- data.frame()
+  for (file in files) {
+    print(file)
+    temp_data <- read_csv(file)
+    indat <- bind_rows(indat, temp_data)
   }
+  
+  # Get most dominant seascapes in all years (90% percentile)
+  # indat$totals <- rowSums(indat[, c(5:length(names(indat)))], na.rm=TRUE)
+  
+  # Filter seascapes less than 23 
+  indat = filter(indat, seascape < 23 & seascape != 0)
+  indat = filter(indat, f1 > 0)
+  
+  seascape_totals <- indat %>%
+    group_by(seascape) %>%
+    summarize(seascape_totals = sum(f1),
+              n = n()) %>%
+    filter(seascape_totals >= .10 & n == 6)
+
+  indat = filter(indat, seascape %in% seascape_totals$seascape)
+  
+  # Clean up data
+  # mdat <- tidyr::gather(indat, key = "Seascape_Predicted", value = "Total", -seascape, -acc, -region, -year, -month)
+  
+  indat$seascape <- factor(as.numeric(as.character(indat$seascape)), levels = sort(unique(as.numeric(as.character(indat$seascape)))))
+  
+  # PLot
+  ggplot(indat, aes(year, seascape, fill=f1)) + 
+    geom_tile() +
+    geom_text(aes(label=paste0(round(f1 * 100, 1), "%")), color='white', size=3.5) +
+    scale_y_discrete(expand=c(0,0)) +
+    scale_x_continuous(breaks=seq(2017, 2022, 1), expand=c(0,0)) +
+    theme_minimal(14) +
+    labs(title=plot_title) +
+    theme(plot.title = element_text(hjust = 0.5),
+          panel.border = element_rect(colour = "black", fill=NA, size=1), 
+           legend.position = "none") +
+    labs(x=NULL, y="Seascape (F1-Score)") +
+    NULL
+  
+  # Get filename and save
+  ggsave(plot = plot_, filename=paste0("figures/May2023_poster_figures/", loc, "_conf_matrix_f1score_year.png"), width=6, height=5)
+  
+  # (NOT REALLY INFORMATIVE)
+  # indat2 = indat %>% group_by(seascape, month) %>% summarise(acc = mean(acc))
+  # ggplot(indat2, aes(month, seascape, fill=acc)) + 
+  #   geom_tile()  +
+  #   geom_text(aes(label=paste0(round(acc * 100, 1), "%")), color='white', size=3.5) +
+  #   scale_y_discrete(expand=c(0,0)) +
+  #   scale_x_continuous(breaks=seq(1, 12, 1), expand=c(0,0)) +
+  #   theme_minimal(14) +
+  #   labs(title=plot_title) +
+  #   theme(plot.title = element_text(hjust = 0.5),
+  #         panel.border = element_rect(colour = "black", fill=NA, size=1), 
+  #         legend.position = "none") +
+  #   labs(x=NULL, y="Seascape (% Accurate)") +
+  #   # facet_wrap(~year)
+  #   NULL
+  #   
+  # plot2_
+
+  indat3 = indat %>% group_by(year, month) %>% summarise(f1 = mean(f1, na.rm=TRUE))
+  indat3$day = 15
+  indat3$date = paste0(indat3$year, "-", indat3$month, "-", indat3$day)
+  indat3$date <- as.Date(indat3$date, format = "%Y-%m-%d")
+
+  indat3$acc = ifelse(is.na(indat3$f1), 0, indat3$f1)
+  
+  plot2_ = ggplot(indat3, aes(date, f1)) + 
+    geom_bar(stat='identity') +
+    theme_minimal(15) +
+    labs(x=NULL, y="Monthly Accuracy (%)", title=plot_title) +
+    scale_x_date(date_breaks = "1 year", date_labels = "%Y") +
+    ylim(0, 1) +
+    theme(plot.title = element_text(hjust = 0.5),
+            panel.border = element_rect(colour = "black", fill=NA, size=1), 
+            legend.position = "none")
+    NULL
+
+    ggsave(plot = plot2_, filename=paste0("figures/May2023_poster_figures/", loc, "_conf_matrix_year_month.png"), width=8, height=5)
+
+  
+}
+
+
+
+
 
 create_tile_map("pnw_coast", "Pacific Northwest")
 create_tile_map("ca_coast", "California Coast")
@@ -174,78 +287,8 @@ create_tile_map = function(loc, plot_title){
   return(plot_)
 }
 
-
-
-
-
-# ---------------------------------------------------------------------------------------------------
-dat = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2017.csv")
-
-df_cm <- tidyr::gather(dat, key = "Predicted", value = "Count", -seascape, -acc, -region, -year)
-df_cm = filter(df_cm, seascape != 0 | Predicted != 0)
-seascapes_ordered = arrange(dat, -acc)$seascape
-
-df_cm$seascape = factor(df_cm$seascape, levels=seascapes_ordered)
-df_cm$Predicted = factor(df_cm$Predicted, levels=seascapes_ordered)
-
-df_cm$Predicted
-df_cm$seascape
-
-labels = dplyr::select(dat, seascape, acc)
-labels$seascape2 = labels$seascape
-labels$acc = round(labels$acc, 2)
-labels$seascape = factor(labels$seascape, levels=seascapes_ordered)
-labels$seascape2 = factor(labels$seascape2, levels=seascapes_ordered)
-
-
-
-# create a ggplot2 heatmap of the confusion matrix
-ggplot(df_cm, aes(x = factor(seascape), y = Predicted, fill=Count)) +
-  geom_tile() +
-  geom_text(aes(label=Count), color='white') +
-  ggtitle("2017 California Seascapes Confusion Matrix") + 
-  labs(x = "True Class", y = "Predicted Class", fill = "Count") +
-  theme(panel.border = element_rect(colour = "grey", fill=NA, size=1), 
-        panel.grid.major = element_blank(),
-        panel.grid.minor = element_blank(),
-        plot.title = element_text(hjust = 0.5),
-        legend.position = "none")
-
-ggsave("figures/ca_coast_2017_conf_mat.png", width=10, height=10)
-#
-
-
-
-dat1 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2017.csv")
-dat2 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2018.csv")
-dat3 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2019.csv")
-dat4 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2020.csv")
-dat5 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2021.csv")
-dat6 = read_csv("~/Projects/Seascape-confusion-matrix-analysis/data/processed/conf_mats/ca_coast_2022.csv")
-
-mdat = rbind.fill(dat1, dat2, dat3, dat4, dat5, dat6)
-mdat <- tidyr::gather(mdat, key = "Predicted", value = "Count", -seascape, -acc, -region, -year)
-mdat = filter(mdat, seascape != 0)
-
-ggplot(mdat, aes(year, seascape, fill=acc)) + 
-  geom_tile() +
-  geom_text(aes(label=round(acc, 2)), color='white') +
-  scale_y_continuous(breaks=seq(0, 33)) +
-  scale_x_continuous(breaks=seq(2017, 2022, 1)) +
-  theme_minimal(14) +
-  ggtitle("California Seascapes") + 
-  theme(panel.border = element_rect(colour = "grey", fill=NA, size=1), 
-      legend.position = "none") +
-  labs(x=NULL, y="Seascape Classification \n (% Accurate)") +
-  NULL
-
-ggsave("figures/ca_coast_2017_seascape_accuracy.png", width=8, height=8)
-
-#
-
-
-
-
+# -------------------------------------------
+# California Coast
 
 # Create map
 ssdat = read_sf("~/Projects/test/data/cb_2018_us_states_500k/cb_2018_us_state_500k.shp")
@@ -307,6 +350,8 @@ ggsave("figures/May2023_poster_figures/ca_seascape_map_2017_blank.png", width=8,
 
 
 
+# -------------------------------------------
+# Chukchi Sea
 
 
 # Create map
@@ -371,6 +416,8 @@ ggsave("figures/May2023_poster_figures/chukchi_seascape_map_2017_blank.png", wid
 
 
 
+# -------------------------------------------
+# Gulf of Mexico
 
 # Create map
 ssdat = read_sf("~/Projects/test/data/cb_2018_us_states_500k/cb_2018_us_state_500k.shp")
@@ -435,6 +482,8 @@ ggsave("figures/May2023_poster_figures/gulf_of_mexico_seascape_map_2017_blank.pn
 
 
 
+# -------------------------------------------
+# North Atlantic
 
 ssdat = read_sf("~/Projects/test/data/cb_2018_us_states_500k/cb_2018_us_state_500k.shp")
 st_crs(ssdat) <- "EPSG:4326" 
@@ -501,6 +550,8 @@ ggsave("figures/May2023_poster_figures/north_atlantic_seascape_map_2017_blank.pn
 
 
 
+# -------------------------------------------
+# Pacific Northwest
 
 ssdat = read_sf("~/Projects/test/data/cb_2018_us_states_500k/cb_2018_us_state_500k.shp")
 st_crs(ssdat) <- "EPSG:4326" 
